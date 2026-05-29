@@ -1,4 +1,4 @@
-package com.hrportal.hr_management_api.config;
+package com.hrportal.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
