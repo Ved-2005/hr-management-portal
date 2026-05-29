@@ -1,4 +1,4 @@
-package com.hrportal.hr_management_api.department;
+package com.hrportal.dto;
 
 import jakarta.validation.constraints.NotBlank;
 

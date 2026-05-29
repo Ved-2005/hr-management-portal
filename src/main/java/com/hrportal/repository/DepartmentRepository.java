@@ -1,6 +1,9 @@
-package com.hrportal.hr_management_api.department;
+package com.hrportal.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.hrportal.entity.Department;
+
 import java.util.Optional;
 
 public interface DepartmentRepository extends JpaRepository<Department, Long> {
