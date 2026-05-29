@@ -1,4 +1,4 @@
-package com.hrportal.common;
+package com.hrportal.hr_management_api.common;
 
 import lombok.Getter;
 import lombok.Setter;

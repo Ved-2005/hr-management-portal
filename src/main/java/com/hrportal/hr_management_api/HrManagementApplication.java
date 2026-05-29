@@ -1,4 +1,4 @@
-package com.hrportal;
+package com.hrportal.hr_management_api;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
