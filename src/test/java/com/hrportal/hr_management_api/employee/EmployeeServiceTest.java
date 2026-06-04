@@ -1,4 +1,4 @@
-package com.hrportal.hr_management_api.department.employee;
+package com.hrportal.hr_management_api.employee;
 
 import com.hrportal.repository.EmployeeRepository;
 import com.hrportal.entity.Department;

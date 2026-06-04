@@ -1,4 +1,4 @@
-package com.hrportal.hr_management_api.department.department;
+package com.hrportal.hr_management_api.department;
 import com.hrportal.exception.DuplicateResourceException;
 import com.hrportal.exception.ResourceNotFoundException;
 import com.hrportal.repository.DepartmentRepository;
@@ -116,4 +116,3 @@ class DepartmentServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> service.delete(99L));
     }
 }
-
