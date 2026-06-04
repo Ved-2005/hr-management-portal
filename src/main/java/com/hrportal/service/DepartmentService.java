@@ -5,6 +5,9 @@ import org.springframework.stereotype.Service;
 
 import com.hrportal.dto.DepartmentDto;
 import com.hrportal.entity.Department;
+import com.hrportal.entity.Employee;
+import com.hrportal.repository.EmployeeRepository;
+import com.hrportal.status.EmployeeStatus;
 import com.hrportal.exception.ResourceNotFoundException;
 import com.hrportal.repository.DepartmentRepository;
 import com.hrportal.exception.DuplicateResourceException;
@@ -14,7 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DepartmentService {
     private final DepartmentRepository repo;
-
+    private final EmployeeRepository employeeRepository;
     public Department create(DepartmentDto dto) {
          if (repo.findByName(dto.name()).isPresent()) {
           throw new DuplicateResourceException("Department already exists: " + dto.name());
@@ -34,7 +37,12 @@ public class DepartmentService {
     }
 
     public void delete(Long id) {
-        getById(id);
-        repo.deleteById(id);
-    }
+      Department dept = getById(id);
+      List<Employee> activeEmployees = employeeRepository.findByDepartmentIdAndStatusNot(id, EmployeeStatus.TERMINATED);
+      if (!activeEmployees.isEmpty()) {
+          throw new IllegalStateException("Cannot delete department with active employees");
+      }
+      dept.setActive(false);  // add boolean active field to Department
+      repo.save(dept);
+  }
 }

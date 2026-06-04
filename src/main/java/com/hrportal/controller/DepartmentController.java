@@ -45,7 +45,7 @@ public class DepartmentController {
       }
   }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id}")  
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
       try {
           service.delete(id);
