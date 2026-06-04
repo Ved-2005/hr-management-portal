@@ -1,0 +1,224 @@
+package com.hrportal.hr_management_api.department.employee;
+
+import com.hrportal.repository.EmployeeRepository;
+import com.hrportal.entity.Department;
+import com.hrportal.entity.Employee;
+import com.hrportal.dto.EmployeeDto;
+import com.hrportal.dto.EmployeePatchDto;
+import com.hrportal.service.DepartmentService;
+import com.hrportal.service.EmployeeService;
+import com.hrportal.exception.DuplicateResourceException;
+import com.hrportal.exception.ResourceNotFoundException;
+import com.hrportal.status.EmployeeStatus;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.InjectMocks;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
+  @ExtendWith(MockitoExtension.class)
+  class EmployeeServiceTest {
+
+    @Mock private EmployeeRepository repo;
+    @Mock private DepartmentService departmentService;
+    @InjectMocks private EmployeeService service;
+
+    private Department mockDepartment() {
+        Department dept = new Department();
+        dept.setId(1L);
+        dept.setName("Engineering");
+        return dept;
+    }
+
+    private EmployeeDto validDto() {
+        return new EmployeeDto("John", "Doe", "john@test.com", "Dev", 50000.0, 1L);
+    }
+
+    @Test
+    void getAll_shouldReturnList() {
+        when(repo.findAll()).thenReturn(List.of(new Employee(), new Employee()));
+
+        assertEquals(2, service.getAll().size());
+    }
+
+    @Test
+    void create_shouldSaveEmployee() {
+        when(repo.findByEmail("john@test.com")).thenReturn(Optional.empty());
+        when(departmentService.getById(1L)).thenReturn(mockDepartment());
+        when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Employee result = service.create(validDto());
+
+        assertEquals("John", result.getFirstName());
+        assertEquals("Doe", result.getLastName());
+        assertEquals("john@test.com", result.getEmail());
+        assertEquals("Dev", result.getDesignation());
+        assertEquals(50000.0, result.getSalary());
+        assertEquals("Engineering", result.getDepartment().getName());
+        assertEquals(EmployeeStatus.ACTIVE, result.getStatus());
+        verify(repo).save(any());
+    }
+
+    @Test
+    void create_shouldThrowWhenEmailAlreadyExists() {
+        when(repo.findByEmail("john@test.com")).thenReturn(Optional.of(new Employee()));
+
+        assertThrows(DuplicateResourceException.class, () -> service.create(validDto()));
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void create_shouldThrowWhenDepartmentNotFound() {
+        when(repo.findByEmail("john@test.com")).thenReturn(Optional.empty());
+        when(departmentService.getById(1L)).thenThrow(new ResourceNotFoundException("Department not found: 1"));
+
+        assertThrows(ResourceNotFoundException.class, () -> service.create(validDto()));
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void getById_shouldReturnEmployee() {
+        Employee emp = new Employee();
+        emp.setFirstName("John");
+        when(repo.findById(1L)).thenReturn(Optional.of(emp));
+
+        assertEquals("John", service.getById(1L).getFirstName());
+    }
+
+    @Test
+    void getById_shouldThrowWhenNotFound() {
+        when(repo.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> service.getById(99L));
+    }
+
+    @Test
+    void search_shouldReturnMatchingEmployees() {
+        when(repo.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase("john", "john"))
+                .thenReturn(List.of(new Employee()));
+
+        assertEquals(1, service.search("john").size());
+    }
+
+     @Test
+  void update_shouldUpdateAllFields() {
+      Employee existing = new Employee();
+      existing.setId(1L);
+      existing.setEmail("old@test.com");
+
+      when(repo.findById(1L)).thenReturn(Optional.of(existing));
+      when(repo.findByEmail("john@test.com")).thenReturn(Optional.empty());
+      when(departmentService.getById(1L)).thenReturn(mockDepartment());
+      when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+      Employee result = service.update(1L, validDto());
+
+      assertEquals("John", result.getFirstName());
+      assertEquals("Doe", result.getLastName());
+      assertEquals("john@test.com", result.getEmail());
+      assertEquals("Engineering", result.getDepartment().getName());
+      verify(repo).save(any());
+    }
+
+    @Test
+    void update_shouldThrowWhenEmailBelongsToAnotherEmployee() {
+        Employee existing = new Employee();
+        existing.setId(1L);
+
+        Employee other = new Employee();
+        other.setId(2L); 
+
+        when(repo.findById(1L)).thenReturn(Optional.of(existing));
+        when(repo.findByEmail("john@test.com")).thenReturn(Optional.of(other));
+
+        assertThrows(DuplicateResourceException.class, () -> service.update(1L, validDto()));
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void getByDepartment_shouldReturnEmployeesInDepartment() {
+        Employee emp1 = new Employee();
+        Employee emp2 = new Employee();
+        when(repo.findByDepartmentId(1L)).thenReturn(List.of(emp1, emp2));
+
+        List<Employee> result = service.getByDepartment(1L);
+
+        assertEquals(2, result.size());
+        verify(repo).findByDepartmentId(1L);
+    }
+
+    @Test
+    void delete_shouldMarkEmployeeAsTerminated() {
+        Employee emp = new Employee();
+        emp.setStatus(EmployeeStatus.ACTIVE);
+        when(repo.findById(1L)).thenReturn(Optional.of(emp));
+        when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.delete(1L);
+
+        assertEquals(EmployeeStatus.TERMINATED, emp.getStatus());
+        verify(repo).save(emp);
+        verify(repo, never()).deleteById(any());
+}
+
+    @Test
+    void delete_shouldThrowWhenNotFound() {
+        when(repo.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> service.delete(99L));
+    }
+
+    @Test
+    void patch_shouldUpdateOnlyProvidedFields() {
+        Employee existing = new Employee();
+        existing.setFirstName("John");
+        existing.setLastName("Doe");
+        existing.setEmail("john@test.com");
+        when(repo.findById(1L)).thenReturn(Optional.of(existing));
+        when(repo.findByEmail("john@test.com")).thenReturn(Optional.empty());
+        when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        EmployeePatchDto patch = new EmployeePatchDto(null, "Musk", "john@test.com", "Senior Dev", null, null);
+        Employee result = service.patch(1L, patch);
+
+        assertEquals("John", result.getFirstName());      
+        assertEquals("Musk", result.getLastName());
+        assertEquals("john@test.com", result.getEmail());
+        assertEquals("Senior Dev", result.getDesignation()); 
+    }
+
+    @Test
+    void patch_shouldThrowWhenEmailAlreadyExists() {
+        Employee existing = new Employee();
+        existing.setId(1L);
+        when(repo.findById(1L)).thenReturn(Optional.of(existing));
+        when(repo.findByEmail("john@test.com")).thenReturn(Optional.of(new Employee()));
+        
+        EmployeePatchDto patch = new EmployeePatchDto(null, null, "john@test.com", "Senior Dev", null, null);
+        assertThrows(DuplicateResourceException.class, () -> service.patch(1L,patch));
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void patch_shouldThrowWhenDepartmentNotFound() {
+        Employee existing = new Employee();
+        existing.setId(1L);
+        when(repo.findById(1L)).thenReturn(Optional.of(existing));
+        when(departmentService.getById(1L)).thenThrow(new ResourceNotFoundException("Department not found: 1"));
+        
+        EmployeePatchDto patch = new EmployeePatchDto(null, null, null, null, null, 1L);
+        assertThrows(ResourceNotFoundException.class, () -> service.patch(1L,patch));
+        verify(repo, never()).save(any());
+    }
+}
