@@ -19,4 +19,7 @@ public class Department extends BaseEntity {
     private String name;
     private String description;
     @Default private boolean active = true;
+    private Integer sickLeaves;
+    private Integer casualLeaves;
+    private Integer paidLeaves;
 }

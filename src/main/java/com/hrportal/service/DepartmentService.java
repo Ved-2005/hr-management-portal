@@ -25,6 +25,9 @@ public class DepartmentService {
         Department dept = Department.builder()
                             .name(dto.name())
                             .description(dto.description())
+                            .sickLeaves(dto.sickLeaves())
+                            .casualLeaves(dto.casualLeaves())
+                            .paidLeaves(dto.paidLeaves())
                             .build();
         return repo.save(dept);
     }
@@ -42,7 +45,7 @@ public class DepartmentService {
       if (!activeEmployees.isEmpty()) {
           throw new IllegalStateException("Cannot delete department with active employees");
       }
-      dept.setActive(false);  // add boolean active field to Department
+      dept.setActive(false); 
       repo.save(dept);
   }
 }

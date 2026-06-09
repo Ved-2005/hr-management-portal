@@ -9,6 +9,7 @@ import com.hrportal.service.DepartmentService;
 import com.hrportal.service.EmployeeService;
 import com.hrportal.exception.DuplicateResourceException;
 import com.hrportal.exception.ResourceNotFoundException;
+import com.hrportal.exception.BadRequestException;
 import com.hrportal.status.EmployeeStatus;
 
 import org.junit.jupiter.api.Test;
@@ -77,6 +78,19 @@ import static org.mockito.Mockito.verify;
         assertThrows(DuplicateResourceException.class, () -> service.create(validDto()));
         verify(repo, never()).save(any());
     }
+
+    @Test
+    void create_shouldThrowWhenDepartmentIsInactive() {
+        Department inactiveDept = new Department();
+        inactiveDept.setId(1L);
+        inactiveDept.setActive(false);
+
+        when(repo.findByEmail("john@test.com")).thenReturn(Optional.empty());
+        when(departmentService.getById(1L)).thenReturn(inactiveDept);
+
+        assertThrows(BadRequestException.class, () -> service.create(validDto()));
+        verify(repo, never()).save(any());
+   }
 
     @Test
     void create_shouldThrowWhenDepartmentNotFound() {

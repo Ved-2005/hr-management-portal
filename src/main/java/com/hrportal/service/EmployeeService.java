@@ -1,9 +1,13 @@
 package com.hrportal.service;
 
 import com.hrportal.repository.EmployeeRepository;
+import com.hrportal.repository.LeaveSummaryRepository;
+import com.hrportal.entity.Department;
 import com.hrportal.entity.Employee;
+import com.hrportal.entity.LeaveSummary;
 import com.hrportal.exception.DuplicateResourceException;
 import com.hrportal.exception.ResourceNotFoundException;
+import com.hrportal.exception.BadRequestException;
 import com.hrportal.dto.EmployeeDto;
 import com.hrportal.dto.EmployeePatchDto;
 import com.hrportal.status.EmployeeStatus;
@@ -16,11 +20,18 @@ import java.util.List;
 public class EmployeeService {
     private final EmployeeRepository repo;
     private final DepartmentService departmentService;
+    private final LeaveSummaryRepository leaveSummaryRepository;
 
     public Employee create(EmployeeDto dto) {
         if (repo.findByEmail(dto.email()).isPresent()) {
           throw new DuplicateResourceException("Employee already exists with email: " + dto.email());
         }
+        
+        Department dept = departmentService.getById(dto.departmentId());
+        if(!dept.isActive()) {
+            throw new BadRequestException("Department is inactive");
+        }
+        
         Employee emp = Employee.builder()
                 .firstName(dto.firstName()).lastName(dto.lastName())
                 .email(dto.email())
@@ -28,7 +39,17 @@ public class EmployeeService {
                 .status(EmployeeStatus.ACTIVE)
                 .department(departmentService.getById(dto.departmentId()))
                 .build();
-        return repo.save(emp);
+
+        Employee saved = repo.save(emp);
+
+        leaveSummaryRepository.save(LeaveSummary.builder()
+                .employee(saved)
+                .sickLeaveBalance(dept.getSickLeaves())
+                .casualLeaveBalance(dept.getCasualLeaves())
+                .paidLeaveBalance(dept.getPaidLeaves())
+                .build());
+
+        return saved;
     }
 
     public List<Employee> getAll() { return repo.findAll(); }
