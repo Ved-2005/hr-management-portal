@@ -1,6 +1,7 @@
 package com.hrportal.hr_management_api.employee;
 
 import com.hrportal.repository.EmployeeRepository;
+import com.hrportal.repository.LeaveSummaryRepository;
 import com.hrportal.entity.Department;
 import com.hrportal.entity.Employee;
 import com.hrportal.dto.EmployeeDto;
@@ -33,6 +34,7 @@ import static org.mockito.Mockito.verify;
 
     @Mock private EmployeeRepository repo;
     @Mock private DepartmentService departmentService;
+    @Mock private LeaveSummaryRepository leaveSummaryRepository;
     @InjectMocks private EmployeeService service;
 
     private Department mockDepartment() {

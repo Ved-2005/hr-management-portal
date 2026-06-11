@@ -59,10 +59,17 @@ public class EmployeeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + id));
     }
 
-    public List<Employee> getByDepartment(Long deptId) { return repo.findByDepartmentId(deptId); }
+    public List<Employee> getByDepartment(Long deptId) { 
+        departmentService.getById(deptId);
+        return repo.findByDepartmentId(deptId); 
+    }
 
     public List<Employee> search(String name) {
-        return repo.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(name, name);
+        List<Employee> results = repo.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(name, name);
+        if(results.isEmpty()) {
+            throw new ResourceNotFoundException("No employee found with name: " + name);
+        }
+      return results;
     }
 
     public Employee update(Long id, EmployeeDto dto) {
