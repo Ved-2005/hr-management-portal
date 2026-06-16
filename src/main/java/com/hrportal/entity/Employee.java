@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.EnumType;
+import jakarta.validation.constraints.Pattern;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -27,7 +28,8 @@ public class Employee extends BaseEntity {
     @Column(nullable = false)
     private String lastName;
     @Column(nullable = false, unique = true)
-    private String email;
+    @Pattern(regexp = "^[A-Za-z]{7}$", message = "Username must be exactly 7 letters")
+    private String username;
     private String designation;
     private Double salary;
 

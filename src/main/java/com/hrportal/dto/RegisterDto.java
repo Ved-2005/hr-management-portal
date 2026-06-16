@@ -7,6 +7,5 @@ import jakarta.validation.constraints.NotNull;
 public record RegisterDto(
     @NotBlank String username,
     @NotBlank String password,
-    @NotNull Role role,
-    Long employeeId 
+    @NotNull Role role 
 ) {}

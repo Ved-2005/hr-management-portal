@@ -45,7 +45,7 @@ import static org.mockito.Mockito.verify;
     }
 
     private EmployeeDto validDto() {
-        return new EmployeeDto("John", "Doe", "john@test.com", "Dev", 50000.0, 1L);
+        return new EmployeeDto("John", "Doe", "johnray", "Dev", 50000.0, 1L);
     }
 
     @Test
@@ -57,7 +57,7 @@ import static org.mockito.Mockito.verify;
 
     @Test
     void create_shouldSaveEmployee() {
-        when(repo.findByEmail("john@test.com")).thenReturn(Optional.empty());
+        when(repo.findByUsername("johnray")).thenReturn(Optional.empty());
         when(departmentService.getById(1L)).thenReturn(mockDepartment());
         when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -65,7 +65,7 @@ import static org.mockito.Mockito.verify;
 
         assertEquals("John", result.getFirstName());
         assertEquals("Doe", result.getLastName());
-        assertEquals("john@test.com", result.getEmail());
+        assertEquals("johnray", result.getUsername());
         assertEquals("Dev", result.getDesignation());
         assertEquals(50000.0, result.getSalary());
         assertEquals("Engineering", result.getDepartment().getName());
@@ -74,8 +74,8 @@ import static org.mockito.Mockito.verify;
     }
 
     @Test
-    void create_shouldThrowWhenEmailAlreadyExists() {
-        when(repo.findByEmail("john@test.com")).thenReturn(Optional.of(new Employee()));
+    void create_shouldThrowWhenUsernameAlreadyExists() {
+        when(repo.findByUsername("johnray")).thenReturn(Optional.of(new Employee()));
 
         assertThrows(DuplicateResourceException.class, () -> service.create(validDto()));
         verify(repo, never()).save(any());
@@ -87,7 +87,7 @@ import static org.mockito.Mockito.verify;
         inactiveDept.setId(1L);
         inactiveDept.setActive(false);
 
-        when(repo.findByEmail("john@test.com")).thenReturn(Optional.empty());
+        when(repo.findByUsername("johnray")).thenReturn(Optional.empty());
         when(departmentService.getById(1L)).thenReturn(inactiveDept);
 
         assertThrows(BadRequestException.class, () -> service.create(validDto()));
@@ -96,7 +96,7 @@ import static org.mockito.Mockito.verify;
 
     @Test
     void create_shouldThrowWhenDepartmentNotFound() {
-        when(repo.findByEmail("john@test.com")).thenReturn(Optional.empty());
+        when(repo.findByUsername("johnray")).thenReturn(Optional.empty());
         when(departmentService.getById(1L)).thenThrow(new ResourceNotFoundException("Department not found: 1"));
 
         assertThrows(ResourceNotFoundException.class, () -> service.create(validDto()));
@@ -127,14 +127,14 @@ import static org.mockito.Mockito.verify;
         assertEquals(1, service.search("john").size());
     }
 
-     @Test
-  void update_shouldUpdateAllFields() {
+    @Test
+    void update_shouldUpdateAllFields() {
       Employee existing = new Employee();
       existing.setId(1L);
-      existing.setEmail("old@test.com");
+      existing.setUsername("oldclie");
 
       when(repo.findById(1L)).thenReturn(Optional.of(existing));
-      when(repo.findByEmail("john@test.com")).thenReturn(Optional.empty());
+      when(repo.findByUsername("johnray")).thenReturn(Optional.empty());
       when(departmentService.getById(1L)).thenReturn(mockDepartment());
       when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -142,13 +142,13 @@ import static org.mockito.Mockito.verify;
 
       assertEquals("John", result.getFirstName());
       assertEquals("Doe", result.getLastName());
-      assertEquals("john@test.com", result.getEmail());
+      assertEquals("johnray", result.getUsername());
       assertEquals("Engineering", result.getDepartment().getName());
       verify(repo).save(any());
     }
 
     @Test
-    void update_shouldThrowWhenEmailBelongsToAnotherEmployee() {
+    void update_shouldThrowWhenUsernameBelongsToAnotherEmployee() {
         Employee existing = new Employee();
         existing.setId(1L);
 
@@ -156,10 +156,30 @@ import static org.mockito.Mockito.verify;
         other.setId(2L); 
 
         when(repo.findById(1L)).thenReturn(Optional.of(existing));
-        when(repo.findByEmail("john@test.com")).thenReturn(Optional.of(other));
+        when(repo.findByUsername("johnray")).thenReturn(Optional.of(other));
 
         assertThrows(DuplicateResourceException.class, () -> service.update(1L, validDto()));
         verify(repo, never()).save(any());
+    }
+
+    @Test
+    void update_shouldUpdateWhenUsernameBelongsToSameEmployee() {
+        Employee existing = new Employee();
+        existing.setFirstName("John");
+        existing.setLastName("Ray");
+        existing.setId(1L);
+
+
+        when(repo.findById(1L)).thenReturn(Optional.of(existing));
+        when(repo.findByUsername("johnray")).thenReturn(Optional.of(existing));
+        when(departmentService.getById(1L)).thenReturn(mockDepartment());
+        when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Employee result = service.update(1L, validDto());
+
+        assertEquals("Doe", result.getLastName());
+
+        verify(repo).save(any());
     }
 
     @Test
@@ -200,28 +220,28 @@ import static org.mockito.Mockito.verify;
         Employee existing = new Employee();
         existing.setFirstName("John");
         existing.setLastName("Doe");
-        existing.setEmail("john@test.com");
+        existing.setUsername("johnray");
         when(repo.findById(1L)).thenReturn(Optional.of(existing));
-        when(repo.findByEmail("john@test.com")).thenReturn(Optional.empty());
+        when(repo.findByUsername("johnray")).thenReturn(Optional.empty());
         when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        EmployeePatchDto patch = new EmployeePatchDto(null, "Musk", "john@test.com", "Senior Dev", null, null);
+        EmployeePatchDto patch = new EmployeePatchDto(null, "Musk", "johnray", "Senior Dev", null, null);
         Employee result = service.patch(1L, patch);
 
         assertEquals("John", result.getFirstName());      
         assertEquals("Musk", result.getLastName());
-        assertEquals("john@test.com", result.getEmail());
+        assertEquals("johnray", result.getUsername());
         assertEquals("Senior Dev", result.getDesignation()); 
     }
 
     @Test
-    void patch_shouldThrowWhenEmailAlreadyExists() {
+    void patch_shouldThrowWhenUsernameAlreadyExists() {
         Employee existing = new Employee();
         existing.setId(1L);
         when(repo.findById(1L)).thenReturn(Optional.of(existing));
-        when(repo.findByEmail("john@test.com")).thenReturn(Optional.of(new Employee()));
+        when(repo.findByUsername("johnray")).thenReturn(Optional.of(new Employee()));
         
-        EmployeePatchDto patch = new EmployeePatchDto(null, null, "john@test.com", "Senior Dev", null, null);
+        EmployeePatchDto patch = new EmployeePatchDto(null, null, "johnray", "Senior Dev", null, null);
         assertThrows(DuplicateResourceException.class, () -> service.patch(1L,patch));
         verify(repo, never()).save(any());
     }

@@ -7,15 +7,12 @@ import com.hrportal.common.ApiResponse;
 import com.hrportal.dto.LoginDto;
 import com.hrportal.dto.RegisterDto;
 
-import com.hrportal.entity.Employee;
 import com.hrportal.entity.User;
-
-import com.hrportal.exception.ResourceNotFoundException;
+import com.hrportal.status.Role;
+import com.hrportal.exception.BadRequestException;
 
 import com.hrportal.repository.EmployeeRepository;
 import com.hrportal.repository.UserRepository;
-
-import com.hrportal.status.Role;
 
 import jakarta.validation.Valid;
 
@@ -50,33 +47,30 @@ public class AuthController {
     public ResponseEntity<ApiResponse<String>> login(@RequestBody LoginDto dto) {
         Authentication auth = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(dto.username(), dto.password()));
-        User user = userRepository.findByUsername(auth.getName()).orElseThrow();
+        User user = userRepository.findById(auth.getName()).orElseThrow();
         return ResponseEntity.ok(ApiResponse.ok("Login successful", jwtUtil.generateToken(user)));
         }
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<String>> register(@Valid @RequestBody RegisterDto dto) {
-        if (userRepository.findByUsername(dto.username()).isPresent()) {
+        if (userRepository.findById(dto.username()).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(ApiResponse.error("Username already exists"));
         }
 
-        if ((dto.role() == Role.HR || dto.role() == Role.EMPLOYEE) && dto.employeeId() == null) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("Employee ID is strictly required when registering an HR or Employee account."));
+        if(dto.role()==Role.ADMIN){
+                throw new BadRequestException("You can only signup for HR or employee role.");
         }
 
-        Employee employee = null;
-        if (dto.employeeId() != null) {
-            employee = employeeRepository.findById(dto.employeeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + dto.employeeId()));
-        }
+        employeeRepository.findByUsername(dto.username())
+        .orElseThrow(() -> new BadRequestException(
+            "Signup failed: No official employee record found for username: '" + dto.username()
+        ));
 
         userRepository.save(User.builder()
                 .username(dto.username())
                 .password(passwordEncoder.encode(dto.password()))
                 .role(dto.role())
-                .employee(employee)
                 .build());
 
         return ResponseEntity.status(HttpStatus.CREATED)

@@ -1,7 +1,9 @@
 package com.hrportal.auth;
 
+import com.hrportal.entity.Employee;
 import com.hrportal.entity.User;
 
+import com.hrportal.repository.EmployeeRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -17,6 +19,8 @@ import java.util.Date;
 
 @Component
 public class JwtUtil {
+    
+    private final EmployeeRepository employeeRepository;
 
     @Value("${jwt.secret}")
     private String secret;
@@ -24,17 +28,27 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private long expiration;
 
+    JwtUtil(EmployeeRepository employeeRepository) {
+        this.employeeRepository = employeeRepository;
+    }
+
     private Key getKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
     public String generateToken(User user) {
+
+        Employee employee = employeeRepository.findByUsername(user.getUsername()).orElse(null);
+
+        Long employeeId = (employee != null) ? employee.getId() : null;
+        Long departmentId = (employee != null && employee.getDepartment() != null) 
+                            ? employee.getDepartment().getId() : null;
+                            
         return Jwts.builder()
                 .setSubject(user.getUsername())
                 .claim("role", user.getRole().name())
-                .claim("employeeId", user.getEmployee() != null ? user.getEmployee().getId() : null)
-                .claim("departmentId", user.getEmployee() != null && user.getEmployee().getDepartment() != null
-                        ? user.getEmployee().getDepartment().getId() : null)
+                .claim("employeeId", employeeId)
+                .claim("departmentId", departmentId)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getKey())

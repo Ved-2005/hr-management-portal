@@ -5,11 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.EnumType;
 
 import lombok.Getter;
@@ -24,10 +20,7 @@ import lombok.Builder;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false, unique = true)
+    @Column
     private String username;
 
     @Column(nullable = false)
@@ -37,7 +30,4 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
-    @OneToOne
-    @JoinColumn(name = "employee_id")
-    private Employee employee;
 }

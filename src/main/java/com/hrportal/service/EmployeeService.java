@@ -23,8 +23,8 @@ public class EmployeeService {
     private final LeaveSummaryRepository leaveSummaryRepository;
 
     public Employee create(EmployeeDto dto) {
-        if (repo.findByEmail(dto.email()).isPresent()) {
-          throw new DuplicateResourceException("Employee already exists with email: " + dto.email());
+        if (repo.findByUsername(dto.username()).isPresent()) {
+          throw new DuplicateResourceException("Employee already exists with username: " + dto.username());
         }
         
         Department dept = departmentService.getById(dto.departmentId());
@@ -34,7 +34,7 @@ public class EmployeeService {
         
         Employee emp = Employee.builder()
                 .firstName(dto.firstName()).lastName(dto.lastName())
-                .email(dto.email())
+                .username(dto.username())
                 .designation(dto.designation()).salary(dto.salary())
                 .status(EmployeeStatus.ACTIVE)
                 .department(departmentService.getById(dto.departmentId()))
@@ -74,12 +74,14 @@ public class EmployeeService {
 
     public Employee update(Long id, EmployeeDto dto) {
         Employee emp = getById(id);
-        if(repo.findByEmail(dto.email()).isPresent()){
-            throw new DuplicateResourceException("Employee already exists with email: " + dto.email());
-        }
+        repo.findByUsername(dto.username()).ifPresent(existingUser -> {
+            if (!existingUser.getId().equals(id)) {
+                throw new DuplicateResourceException("Username is already taken by another employee.");
+            }
+        });
         emp.setFirstName(dto.firstName());
         emp.setLastName(dto.lastName());
-        emp.setEmail(dto.email());
+        emp.setUsername(dto.username());
         emp.setDesignation(dto.designation());
         emp.setSalary(dto.salary());
         emp.setDepartment(departmentService.getById(dto.departmentId()));
@@ -88,12 +90,12 @@ public class EmployeeService {
 
     public Employee patch(Long id, EmployeePatchDto dto) {  
       Employee emp = getById(id);
-      if(repo.findByEmail(dto.email()).isPresent()){
-            throw new DuplicateResourceException("Employee already exists with email: " + dto.email());
+      if(repo.findByUsername(dto.username()).isPresent()){
+            throw new DuplicateResourceException("Employee already exists with username: " + dto.username());
       }
       if (dto.firstName() != null) emp.setFirstName(dto.firstName());
       if (dto.lastName() != null) emp.setLastName(dto.lastName());
-      if (dto.email() != null) emp.setEmail(dto.email());
+      if (dto.username() != null) emp.setUsername(dto.username());
       if (dto.designation() != null) emp.setDesignation(dto.designation());
       if (dto.salary() != null) emp.setSalary(dto.salary());
       if (dto.departmentId() != null) emp.setDepartment(departmentService.getById(dto.departmentId()));
