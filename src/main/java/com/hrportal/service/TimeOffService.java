@@ -17,6 +17,7 @@ import com.hrportal.entity.LeaveSummary;
 import com.hrportal.entity.TimeOff;
 import com.hrportal.exception.BadRequestException;
 import com.hrportal.exception.ResourceNotFoundException;
+import com.hrportal.auth.SecurityContextHelper;
 import com.hrportal.dto.TimeOffDto;
 
 @Service
@@ -25,6 +26,7 @@ public class TimeOffService {
     private final TimeOffRepository repo;
     private final EmployeeService employeeService;
     private final LeaveSummaryRepository leaveSummaryRepository;
+    private final SecurityContextHelper securityContextHelper;
 
     public TimeOff apply(Long employeeId, TimeOffDto dto) {
 
@@ -118,7 +120,13 @@ public class TimeOffService {
         return repo.findByEmployeeId(empId);
     }
     public List<TimeOff> getPending() { 
-        List<TimeOff> pending = repo.findByStatus(LeaveStatus.PENDING);
+        List<TimeOff> pending;
+        if (securityContextHelper.isHR()){
+          pending = repo.findPendingByDepartmentId(securityContextHelper.getDepartmentId());
+        } 
+        else {
+          pending = repo.findByStatus(LeaveStatus.PENDING);
+        }
         if (pending.isEmpty()) {
             throw new ResourceNotFoundException("No pending leave requests found");
         }
@@ -126,8 +134,13 @@ public class TimeOffService {
     } 
 
     private TimeOff updateStatus(Long id, LeaveStatus status) {
-        TimeOff lr = repo.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Leave request not found: " + id));
+        TimeOff lr = repo.findById(id).
+                     orElseThrow(()-> new ResourceNotFoundException("Leave request not found"));
+            
+        if (!lr.getEmployee().getDepartment().getId().equals(securityContextHelper.getDepartmentId())) {
+            throw new BadRequestException("Access denied: Employee not in your department");
+        }
+        
         if (lr.getStatus() == LeaveStatus.APPROVED) {
           throw new IllegalStateException("Leave is already approved");
         }

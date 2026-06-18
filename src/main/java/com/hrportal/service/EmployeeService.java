@@ -8,6 +8,7 @@ import com.hrportal.entity.LeaveSummary;
 import com.hrportal.exception.DuplicateResourceException;
 import com.hrportal.exception.ResourceNotFoundException;
 import com.hrportal.exception.BadRequestException;
+import com.hrportal.auth.SecurityContextHelper;
 import com.hrportal.dto.EmployeeDto;
 import com.hrportal.dto.EmployeePatchDto;
 import com.hrportal.status.EmployeeStatus;
@@ -21,6 +22,7 @@ public class EmployeeService {
     private final EmployeeRepository repo;
     private final DepartmentService departmentService;
     private final LeaveSummaryRepository leaveSummaryRepository;
+    private final SecurityContextHelper securityContextHelper;
 
     public Employee create(EmployeeDto dto) {
         if (repo.findByUsername(dto.username()).isPresent()) {
@@ -31,7 +33,13 @@ public class EmployeeService {
         if(!dept.isActive()) {
             throw new BadRequestException("Department is inactive");
         }
-        
+
+        if (securityContextHelper.isHR()) {
+          if (!dto.departmentId().equals(securityContextHelper.getDepartmentId())) {
+              throw new BadRequestException("Access denied: HR can only create employees in their department");
+            }
+        }
+
         Employee emp = Employee.builder()
                 .firstName(dto.firstName()).lastName(dto.lastName())
                 .username(dto.username())
@@ -52,15 +60,36 @@ public class EmployeeService {
         return saved;
     }
 
-    public List<Employee> getAll() { return repo.findAll(); }
+    public List<Employee> getAll() { 
+        if (securityContextHelper.isHR()){
+          return repo.findByDepartmentId(securityContextHelper.getDepartmentId());
+        }
+        return repo.findAll();
+    }
 
     public Employee getById(Long id) {
-        return repo.findById(id)
+        Employee emp = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + id));
+
+        if(securityContextHelper.isHR()){
+            if(!emp.getDepartment().getId().equals(securityContextHelper.getDepartmentId())) {
+            throw new BadRequestException("Access denied: Employee not in your department");
+            }
+        }
+
+        if (securityContextHelper.isEmployee()) {
+            if (!id.equals(securityContextHelper.getEmployeeId())) {
+            throw new BadRequestException("Access denied: Employee can only access their own profile");
+            }
+        }
+        return emp;
     }
 
     public List<Employee> getByDepartment(Long deptId) { 
         departmentService.getById(deptId);
+        if (securityContextHelper.isHR() && !deptId.equals(securityContextHelper.getDepartmentId())) {
+            throw new BadRequestException("Access denied: HR can only view employees of their own department");
+        }
         return repo.findByDepartmentId(deptId); 
     }
 
@@ -69,6 +98,13 @@ public class EmployeeService {
         if(results.isEmpty()) {
             throw new ResourceNotFoundException("No employee found with name: " + name);
         }
+        if (securityContextHelper.isHR()) {
+        Long deptId = securityContextHelper.getDepartmentId();
+        results = results.stream()
+                .filter(e -> e.getDepartment().getId().equals(deptId))
+                .toList();
+        if (results.isEmpty()) throw new ResourceNotFoundException("No employee found with name: " + name + " in your department");
+      }
       return results;
     }
 
@@ -79,6 +115,13 @@ public class EmployeeService {
                 throw new DuplicateResourceException("Username is already taken by another employee.");
             }
         });
+
+        if (securityContextHelper.isHR()) {
+          if (!dto.departmentId().equals(securityContextHelper.getDepartmentId())) {
+              throw new BadRequestException("Access denied: HR can only update employee information of their department");
+            }
+        }
+
         emp.setFirstName(dto.firstName());
         emp.setLastName(dto.lastName());
         emp.setUsername(dto.username());
@@ -93,6 +136,12 @@ public class EmployeeService {
       if(repo.findByUsername(dto.username()).isPresent()){
             throw new DuplicateResourceException("Employee already exists with username: " + dto.username());
       }
+
+      if (securityContextHelper.isHR()) {
+          if (!emp.getDepartment().getId().equals(securityContextHelper.getDepartmentId())) {
+              throw new BadRequestException("Access denied: HR can only update employee information of their department");
+        }
+    }
       if (dto.firstName() != null) emp.setFirstName(dto.firstName());
       if (dto.lastName() != null) emp.setLastName(dto.lastName());
       if (dto.username() != null) emp.setUsername(dto.username());
@@ -103,8 +152,13 @@ public class EmployeeService {
   }
 
     public void delete(Long id) {
-      Employee emp = getById(id);
-      emp.setStatus(EmployeeStatus.TERMINATED);
-      repo.save(emp);
+        Employee emp = getById(id);
+        if (securityContextHelper.isHR()) {
+        if (!emp.getDepartment().getId().equals(securityContextHelper.getDepartmentId())) {
+            throw new BadRequestException("Access denied: HR can only delete employees of their department");
+        }
+    }
+    emp.setStatus(EmployeeStatus.TERMINATED);
+    repo.save(emp);
   }
 }

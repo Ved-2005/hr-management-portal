@@ -2,9 +2,15 @@
 
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.hrportal.common.ApiResponse;
+
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -45,9 +51,34 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
         .body(ApiResponse.error("Malformed request body"));
         }
 
-         @ExceptionHandler(BadRequestException.class)
+        @ExceptionHandler(BadRequestException.class)
         public ResponseEntity<ApiResponse<Void>> handleBadRequest(BadRequestException ex) {
           return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(ApiResponse.error(ex.getMessage()));
-  }
-  }
+          .body(ApiResponse.error(ex.getMessage()));
+        }
+
+        @ExceptionHandler(ExpiredJwtException.class)
+        public ResponseEntity<ApiResponse<Void>> handleExpiredJwtException(ExpiredJwtException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(ApiResponse.error("Token has expired. Please log in again."));
+        }
+
+
+        @ExceptionHandler(JwtException.class)
+        public ResponseEntity<ApiResponse<Void>> handleJwtException(JwtException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(ApiResponse.error("Invalid JWT token: " + ex.getMessage()));
+        }
+
+        @ExceptionHandler(BadCredentialsException.class)
+        public ResponseEntity<ApiResponse<Void>> handleBadCredentialsException(BadCredentialsException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(ApiResponse.error("Invalid username or password."));
+        }
+
+        @ExceptionHandler(AccessDeniedException.class)
+        public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error("Access Denied: You do not have the required role to access this endpoint."));
+        }
+}
