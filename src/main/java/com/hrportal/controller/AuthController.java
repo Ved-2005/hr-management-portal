@@ -8,9 +8,11 @@ import com.hrportal.dto.LoginDto;
 import com.hrportal.dto.RegisterDto;
 
 import com.hrportal.entity.User;
+import com.hrportal.entity.Employee;
+import com.hrportal.status.EmployeeStatus;
 import com.hrportal.status.Role;
 import com.hrportal.exception.BadRequestException;
-
+import com.hrportal.exception.ResourceNotFoundException;
 import com.hrportal.repository.EmployeeRepository;
 import com.hrportal.repository.UserRepository;
 
@@ -62,10 +64,14 @@ public class AuthController {
                 throw new BadRequestException("You can only signup for HR or employee role.");
         }
 
-        employeeRepository.findByUsername(dto.username())
-        .orElseThrow(() -> new BadRequestException(
-            "Signup failed: No official employee record found for username: '" + dto.username()
+        Employee emp = employeeRepository.findByUsername(dto.username())
+        .orElseThrow(() -> new ResourceNotFoundException(
+            "Signup failed: No official employee record found for username: " + dto.username()
         ));
+
+        if (emp.getStatus() == EmployeeStatus.TERMINATED) {
+                throw new ResourceNotFoundException("Signup failed: No official employee record found for username: " + dto.username());
+        }
 
         userRepository.save(User.builder()
                 .username(dto.username())

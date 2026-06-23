@@ -142,6 +142,11 @@ public class EmployeeService {
               throw new BadRequestException("Access denied: HR can only update employee information of their department");
         }
     }
+
+      if (!dto.departmentId().equals(securityContextHelper.getDepartmentId())) {
+              throw new BadRequestException("The department cannot be updated");
+    }
+
       if (dto.firstName() != null) emp.setFirstName(dto.firstName());
       if (dto.lastName() != null) emp.setLastName(dto.lastName());
       if (dto.username() != null) emp.setUsername(dto.username());
@@ -158,6 +163,9 @@ public class EmployeeService {
             throw new BadRequestException("Access denied: HR can only delete employees of their department");
         }
     }
+        if(emp.getStatus()==EmployeeStatus.TERMINATED){
+            throw new IllegalStateException("Employee is already deleted");
+        }
     emp.setStatus(EmployeeStatus.TERMINATED);
     repo.save(emp);
   }

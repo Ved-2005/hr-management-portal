@@ -45,6 +45,9 @@ public class DepartmentService {
       if (!activeEmployees.isEmpty()) {
           throw new IllegalStateException("Cannot delete department with active employees");
       }
+      if(!dept.isActive()) {
+          throw new IllegalStateException("Department is already deleted");
+      }
       dept.setActive(false); 
       repo.save(dept);
   }
