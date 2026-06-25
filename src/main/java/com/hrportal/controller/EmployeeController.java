@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -51,11 +50,6 @@ public class EmployeeController {
     @GetMapping("/department/{deptId}")
     public ResponseEntity<ApiResponse<List<Employee>>> getByDept(@PathVariable Long deptId) {
         return ResponseEntity.ok(ApiResponse.ok("Filtered", service.getByDepartment(deptId)));
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Employee>> update(@PathVariable Long id, @Valid @RequestBody EmployeeDto dto) {
-        return ResponseEntity.ok(ApiResponse.ok("Employee updated", service.update(id, dto)));
     }
 
     @PatchMapping("/{id}")

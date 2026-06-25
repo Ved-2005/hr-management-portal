@@ -128,61 +128,6 @@ import static org.mockito.Mockito.verify;
     }
 
     @Test
-    void update_shouldUpdateAllFields() {
-      Employee existing = new Employee();
-      existing.setId(1L);
-      existing.setUsername("oldclie");
-
-      when(repo.findById(1L)).thenReturn(Optional.of(existing));
-      when(repo.findByUsername("johnray")).thenReturn(Optional.empty());
-      when(departmentService.getById(1L)).thenReturn(mockDepartment());
-      when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
-
-      Employee result = service.update(1L, validDto());
-
-      assertEquals("John", result.getFirstName());
-      assertEquals("Doe", result.getLastName());
-      assertEquals("johnray", result.getUsername());
-      assertEquals("Engineering", result.getDepartment().getName());
-      verify(repo).save(any());
-    }
-
-    @Test
-    void update_shouldThrowWhenUsernameBelongsToAnotherEmployee() {
-        Employee existing = new Employee();
-        existing.setId(1L);
-
-        Employee other = new Employee();
-        other.setId(2L); 
-
-        when(repo.findById(1L)).thenReturn(Optional.of(existing));
-        when(repo.findByUsername("johnray")).thenReturn(Optional.of(other));
-
-        assertThrows(DuplicateResourceException.class, () -> service.update(1L, validDto()));
-        verify(repo, never()).save(any());
-    }
-
-    @Test
-    void update_shouldUpdateWhenUsernameBelongsToSameEmployee() {
-        Employee existing = new Employee();
-        existing.setFirstName("John");
-        existing.setLastName("Ray");
-        existing.setId(1L);
-
-
-        when(repo.findById(1L)).thenReturn(Optional.of(existing));
-        when(repo.findByUsername("johnray")).thenReturn(Optional.of(existing));
-        when(departmentService.getById(1L)).thenReturn(mockDepartment());
-        when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
-
-        Employee result = service.update(1L, validDto());
-
-        assertEquals("Doe", result.getLastName());
-
-        verify(repo).save(any());
-    }
-
-    @Test
     void getByDepartment_shouldReturnEmployeesInDepartment() {
         Employee emp1 = new Employee();
         Employee emp2 = new Employee();

@@ -2,9 +2,11 @@ package com.hrportal.service;
 
 import com.hrportal.repository.EmployeeRepository;
 import com.hrportal.repository.LeaveSummaryRepository;
+import com.hrportal.repository.UserRepository;
 import com.hrportal.entity.Department;
 import com.hrportal.entity.Employee;
 import com.hrportal.entity.LeaveSummary;
+import com.hrportal.entity.User;
 import com.hrportal.exception.DuplicateResourceException;
 import com.hrportal.exception.ResourceNotFoundException;
 import com.hrportal.exception.BadRequestException;
@@ -12,6 +14,7 @@ import com.hrportal.auth.SecurityContextHelper;
 import com.hrportal.dto.EmployeeDto;
 import com.hrportal.dto.EmployeePatchDto;
 import com.hrportal.status.EmployeeStatus;
+import com.hrportal.status.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -23,6 +26,7 @@ public class EmployeeService {
     private final DepartmentService departmentService;
     private final LeaveSummaryRepository leaveSummaryRepository;
     private final SecurityContextHelper securityContextHelper;
+    private final UserRepository userRepository;
 
     public Employee create(EmployeeDto dto) {
         if (repo.findByUsername(dto.username()).isPresent()) {
@@ -108,29 +112,6 @@ public class EmployeeService {
       return results;
     }
 
-    public Employee update(Long id, EmployeeDto dto) {
-        Employee emp = getById(id);
-        repo.findByUsername(dto.username()).ifPresent(existingUser -> {
-            if (!existingUser.getId().equals(id)) {
-                throw new DuplicateResourceException("Username is already taken by another employee.");
-            }
-        });
-
-        if (securityContextHelper.isHR()) {
-          if (!dto.departmentId().equals(securityContextHelper.getDepartmentId())) {
-              throw new BadRequestException("Access denied: HR can only update employee information of their department");
-            }
-        }
-
-        emp.setFirstName(dto.firstName());
-        emp.setLastName(dto.lastName());
-        emp.setUsername(dto.username());
-        emp.setDesignation(dto.designation());
-        emp.setSalary(dto.salary());
-        emp.setDepartment(departmentService.getById(dto.departmentId()));
-        return repo.save(emp);
-    }
-
     public Employee patch(Long id, EmployeePatchDto dto) {  
       Employee emp = getById(id);
       if(repo.findByUsername(dto.username()).isPresent()){
@@ -161,6 +142,10 @@ public class EmployeeService {
         if (securityContextHelper.isHR()) {
         if (!emp.getDepartment().getId().equals(securityContextHelper.getDepartmentId())) {
             throw new BadRequestException("Access denied: HR can only delete employees of their department");
+        }
+        User targetUser = userRepository.findById(emp.getUsername()).orElseThrow();
+        if(targetUser.getRole()==Role.HR){
+            throw new BadRequestException("Only System Administrators have permission to delete HR records");
         }
     }
         if(emp.getStatus()==EmployeeStatus.TERMINATED){
