@@ -9,6 +9,5 @@ public record EmployeePatchDto(
     String lastName,
     String username,
     String designation,
-    @Positive Double salary,
-    Long departmentId
+    @Positive Double salary
 ) {}

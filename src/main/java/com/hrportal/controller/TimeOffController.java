@@ -29,10 +29,10 @@ import java.util.List;
 public class TimeOffController {
     private final TimeOffService service;
 
-    @PostMapping("/employee/{employeeId}")
-    public ResponseEntity<ApiResponse<TimeOff>> apply(@PathVariable Long employeeId,@Valid @RequestBody TimeOffDto dto) {
+    @PostMapping("/employee/{username}")
+    public ResponseEntity<ApiResponse<TimeOff>> apply(@PathVariable String username,@Valid @RequestBody TimeOffDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Successfully applied for leave", service.apply(employeeId,dto)));
+                .body(ApiResponse.ok("Successfully applied for leave", service.apply(username,dto)));
     }
 
     @GetMapping("/pending")
@@ -40,9 +40,9 @@ public class TimeOffController {
         return ResponseEntity.ok(ApiResponse.ok("Pending leaves", service.getPending()));
     }
 
-    @GetMapping("/employee/{empId}")
-    public ResponseEntity<ApiResponse<List<TimeOff>>> getByEmployee(@PathVariable Long empId) {
-        return ResponseEntity.ok(ApiResponse.ok("Employee leaves", service.getByEmployee(empId)));
+    @GetMapping("/employee/{username}")
+    public ResponseEntity<ApiResponse<List<TimeOff>>> getByEmployee(@PathVariable String username) {
+        return ResponseEntity.ok(ApiResponse.ok("Employee leaves", service.getByEmployee(username)));
     }
 
     @PatchMapping("/{id}/approve")
@@ -55,8 +55,8 @@ public class TimeOffController {
         return ResponseEntity.ok(ApiResponse.ok("Leave rejected", service.reject(id)));
     }
 
-    @GetMapping("/employee/{employeeId}/total-leaves")
-    public ResponseEntity<ApiResponse<Long>> getTotalLeavesTaken(@PathVariable Long employeeId) {
-      return ResponseEntity.ok(ApiResponse.ok("Total leaves taken", service.getTotalLeavesTaken(employeeId)));
+    @GetMapping("/employee/{username}/total-leaves")
+    public ResponseEntity<ApiResponse<Long>> getTotalLeavesTaken(@PathVariable String username) {
+      return ResponseEntity.ok(ApiResponse.ok("Total leaves taken", service.getTotalLeavesTaken(username)));
   }
 }

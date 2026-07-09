@@ -28,19 +28,19 @@ public class TimeOffService {
     private final LeaveSummaryRepository leaveSummaryRepository;
     private final SecurityContextHelper securityContextHelper;
 
-    public TimeOff apply(Long employeeId, TimeOffDto dto) {
+    public TimeOff apply(String username, TimeOffDto dto) {
 
         if (dto.endDate().isBefore(dto.startDate())) {
             throw new BadRequestException("End date cannot be before start date");
         }
 
-        Employee employee = employeeService.getById(employeeId);
+        Employee employee = employeeService.getByUsername(username);
 
         if (employee.getStatus() != EmployeeStatus.ACTIVE) {
             throw new BadRequestException("Time off can only be applied for active employees");
         }
 
-        List<TimeOff> pending = repo.findByEmployeeIdAndStatus(employeeId, LeaveStatus.PENDING);
+        List<TimeOff> pending = repo.findByEmployeeIdAndStatus(employee.getId(), LeaveStatus.PENDING);
         if (!pending.isEmpty()) {
             throw new BadRequestException("Employee already has a pending time off request");
         }
@@ -55,8 +55,8 @@ public class TimeOffService {
             throw new BadRequestException("Leaves cannot be applied beyond date " + maxAllowedDate);
         }
 
-        LeaveSummary summary = leaveSummaryRepository.findByEmployeeId(employeeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Leave summary not found for employee: " + employeeId));
+        LeaveSummary summary = leaveSummaryRepository.findByEmployeeId(employee.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Leave summary not found for employee: " + username));
 
             long daysRequested = ChronoUnit.DAYS.between(dto.startDate(), dto.endDate()) + 1;
 
@@ -115,9 +115,9 @@ public class TimeOffService {
 
     public TimeOff reject(Long id) { return updateStatus(id, LeaveStatus.REJECTED); }
 
-    public List<TimeOff> getByEmployee(Long empId) { 
-        employeeService.getById(empId);
-        return repo.findByEmployeeId(empId);
+    public List<TimeOff> getByEmployee(String username) { 
+        Employee emp = employeeService.getByUsername(username);
+        return repo.findByEmployeeId(emp.getId());
     }
     public List<TimeOff> getPending() { 
         List<TimeOff> pending;
@@ -151,9 +151,9 @@ public class TimeOffService {
         return repo.save(lr);
     }
 
-     public long getTotalLeavesTaken(Long employeeId) {
-      employeeService.getById(employeeId); 
-      return repo.findByEmployeeIdAndStatus(employeeId, LeaveStatus.APPROVED)
+     public long getTotalLeavesTaken(String username) {
+      Employee emp = employeeService.getByUsername(username); 
+      return repo.findByEmployeeIdAndStatus(emp.getId(), LeaveStatus.APPROVED)
             .stream()
             .mapToLong(t -> ChronoUnit.DAYS.between(t.getStartDate(), t.getEndDate()) + 1)
             .sum();

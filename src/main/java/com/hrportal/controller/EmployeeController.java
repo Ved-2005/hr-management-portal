@@ -37,9 +37,9 @@ public class EmployeeController {
         return ResponseEntity.ok(ApiResponse.ok("Employees fetched", service.getAll()));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Employee>> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok("Employee fetched", service.getById(id)));
+    @GetMapping("/{username}")
+    public ResponseEntity<ApiResponse<Employee>> getById(@PathVariable String username) {
+        return ResponseEntity.ok(ApiResponse.ok("Employee fetched", service.getByUsername(username)));
     }
 
     @GetMapping("/search")
@@ -52,14 +52,14 @@ public class EmployeeController {
         return ResponseEntity.ok(ApiResponse.ok("Filtered", service.getByDepartment(deptId)));
     }
 
-    @PatchMapping("/{id}")
-    public ResponseEntity<ApiResponse<Employee>> patch(@PathVariable Long id, @Valid @RequestBody EmployeePatchDto dto) {
-      return ResponseEntity.ok(ApiResponse.ok("Employee updated", service.patch(id, dto)));
+    @PatchMapping("/{username}")
+    public ResponseEntity<ApiResponse<Employee>> patch(@PathVariable String username, @Valid @RequestBody EmployeePatchDto dto) {
+      return ResponseEntity.ok(ApiResponse.ok("Employee updated", service.patch(username, dto)));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-        service.delete(id);
+    @DeleteMapping("/{username}")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String username) {
+        service.delete(username);
         return ResponseEntity.ok(ApiResponse.ok("Employee deleted", null));
     }
 }

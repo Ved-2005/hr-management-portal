@@ -1,6 +1,7 @@
 package com.hrportal.hr_management_api.timeoff;
 
 import com.hrportal.dto.TimeOffDto;
+import com.hrportal.entity.Department;
 import com.hrportal.entity.Employee;
 import com.hrportal.entity.LeaveSummary;
 import com.hrportal.entity.TimeOff;
@@ -13,6 +14,7 @@ import com.hrportal.service.TimeOffService;
 import com.hrportal.status.EmployeeStatus;
 import com.hrportal.status.LeaveStatus;
 import com.hrportal.type.LeaveType;
+import com.hrportal.auth.SecurityContextHelper;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,8 +33,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.verify;;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class TimeOffServiceTest {
@@ -40,6 +42,7 @@ class TimeOffServiceTest {
     @Mock private TimeOffRepository repo;
     @Mock private EmployeeService employeeService;
     @Mock private LeaveSummaryRepository leaveSummaryRepository;
+    @Mock private SecurityContextHelper securityContextHelper;
     @InjectMocks private TimeOffService service;
 
     private Employee activeEmployee;
@@ -49,7 +52,12 @@ class TimeOffServiceTest {
     void setUp() {
         activeEmployee = new Employee();
         activeEmployee.setId(1L);
+        activeEmployee.setUsername("abcdefg");
         activeEmployee.setStatus(EmployeeStatus.ACTIVE);
+        
+        Department dept = new Department();
+        dept.setId(1L);
+        activeEmployee.setDepartment(dept);
 
         summary = new LeaveSummary();
         summary.setSickLeaveBalance(5);
@@ -61,15 +69,14 @@ class TimeOffServiceTest {
         return new TimeOffDto(type, LocalDate.now(), LocalDate.now().plusDays(2), "Fever");
     }
 
-
     @Test
     void apply_shouldSaveTimeOff() {
-        when(employeeService.getById(1L)).thenReturn(activeEmployee);
+        when(employeeService.getByUsername("abcdefg")).thenReturn(activeEmployee);
         when(repo.findByEmployeeIdAndStatus(1L, LeaveStatus.PENDING)).thenReturn(List.of());
         when(leaveSummaryRepository.findByEmployeeId(1L)).thenReturn(Optional.of(summary));
         when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        TimeOff result = service.apply(1L, validDto(LeaveType.SICK));
+        TimeOff result = service.apply("abcdefg", validDto(LeaveType.SICK));
 
         assertEquals(LeaveStatus.PENDING, result.getStatus());
         assertEquals(LeaveType.SICK, result.getLeaveType());
@@ -79,74 +86,74 @@ class TimeOffServiceTest {
     @Test
     void apply_shouldThrowWhenEndDateBeforeStartDate() {
         TimeOffDto dto = new TimeOffDto(LeaveType.SICK, LocalDate.now().plusDays(3), LocalDate.now(), "test");
-        assertThrows(BadRequestException.class, () -> service.apply(1L, dto));
+        assertThrows(BadRequestException.class, () -> service.apply("abcdefg", dto));
     }
 
     @Test
     void apply_shouldThrowWhenEmployeeNotActive() {
         activeEmployee.setStatus(EmployeeStatus.ON_LEAVE);
-        when(employeeService.getById(1L)).thenReturn(activeEmployee);
+        when(employeeService.getByUsername("abcdefg")).thenReturn(activeEmployee);
 
-        assertThrows(BadRequestException.class, () -> service.apply(1L, validDto(LeaveType.SICK)));
+        assertThrows(BadRequestException.class, () -> service.apply("abcdefg", validDto(LeaveType.SICK)));
     }
 
     @Test
     void apply_shouldThrowWhenPendingLeaveExists() {
-        when(employeeService.getById(1L)).thenReturn(activeEmployee);
+        when(employeeService.getByUsername("abcdefg")).thenReturn(activeEmployee);
         when(repo.findByEmployeeIdAndStatus(1L, LeaveStatus.PENDING)).thenReturn(List.of(new TimeOff()));
 
-        assertThrows(BadRequestException.class, () -> service.apply(1L, validDto(LeaveType.SICK)));
+        assertThrows(BadRequestException.class, () -> service.apply("abcdefg", validDto(LeaveType.SICK)));
     }
 
     @Test
     void apply_shouldThrowWhenStartDateTooOld() {
-        when(employeeService.getById(1L)).thenReturn(activeEmployee);
+        when(employeeService.getByUsername("abcdefg")).thenReturn(activeEmployee);
         when(repo.findByEmployeeIdAndStatus(1L, LeaveStatus.PENDING)).thenReturn(List.of());
 
         TimeOffDto dto = new TimeOffDto(LeaveType.SICK, LocalDate.now().minusMonths(2), LocalDate.now().minusMonths(2).plusDays(2), "test");
-        assertThrows(BadRequestException.class, () -> service.apply(1L, dto));
+        assertThrows(BadRequestException.class, () -> service.apply("abcdefg", dto));
     }
 
     @Test
     void apply_shouldThrowWhenEndDateBeyondMaxAllowed() {
-        when(employeeService.getById(1L)).thenReturn(activeEmployee);
+        when(employeeService.getByUsername("abcdefg")).thenReturn(activeEmployee);
         when(repo.findByEmployeeIdAndStatus(1L, LeaveStatus.PENDING)).thenReturn(List.of());
 
         TimeOffDto dto = new TimeOffDto(LeaveType.SICK, LocalDate.now(), LocalDate.of(LocalDate.now().getYear() + 2, 4, 2), "test");
-        assertThrows(BadRequestException.class, () -> service.apply(1L, dto));
+        assertThrows(BadRequestException.class, () -> service.apply("abcdefg", dto));
     }
 
     @Test
     void apply_shouldThrowWhenInsufficientSickLeaves() {
         summary.setSickLeaveBalance(1);
-        when(employeeService.getById(1L)).thenReturn(activeEmployee);
+        when(employeeService.getByUsername("abcdefg")).thenReturn(activeEmployee);
         when(repo.findByEmployeeIdAndStatus(1L, LeaveStatus.PENDING)).thenReturn(List.of());
         when(leaveSummaryRepository.findByEmployeeId(1L)).thenReturn(Optional.of(summary));
 
         TimeOffDto dto = new TimeOffDto(LeaveType.SICK, LocalDate.now(), LocalDate.now().plusDays(4), "test");
-        assertThrows(IllegalStateException.class, () -> service.apply(1L, dto));
+        assertThrows(IllegalStateException.class, () -> service.apply("abcdefg", dto));
     }
 
     @Test
     void apply_shouldThrowWhenInsufficientCasualLeaves() {
         summary.setCasualLeaveBalance(1);
-        when(employeeService.getById(1L)).thenReturn(activeEmployee);
+        when(employeeService.getByUsername("abcdefg")).thenReturn(activeEmployee);
         when(repo.findByEmployeeIdAndStatus(1L, LeaveStatus.PENDING)).thenReturn(List.of());
         when(leaveSummaryRepository.findByEmployeeId(1L)).thenReturn(Optional.of(summary));
 
         TimeOffDto dto = new TimeOffDto(LeaveType.CASUAL, LocalDate.now(), LocalDate.now().plusDays(4), "test");
-        assertThrows(IllegalStateException.class, () -> service.apply(1L, dto));
+        assertThrows(IllegalStateException.class, () -> service.apply("abcdefg", dto));
     }
 
     @Test
     void apply_shouldThrowWhenInsufficientPaidLeaves() {
         summary.setPaidLeaveBalance(1);
-        when(employeeService.getById(1L)).thenReturn(activeEmployee);
+        when(employeeService.getByUsername("abcdefg")).thenReturn(activeEmployee);
         when(repo.findByEmployeeIdAndStatus(1L, LeaveStatus.PENDING)).thenReturn(List.of());
         when(leaveSummaryRepository.findByEmployeeId(1L)).thenReturn(Optional.of(summary));
 
         TimeOffDto dto = new TimeOffDto(LeaveType.PAID, LocalDate.now(), LocalDate.now().plusDays(4), "test");
-        assertThrows(IllegalStateException.class, () -> service.apply(1L, dto));
+        assertThrows(IllegalStateException.class, () -> service.apply("abcdefg", dto));
     }
 
 
@@ -158,6 +165,7 @@ class TimeOffServiceTest {
                 .status(LeaveStatus.PENDING).build();
 
         when(repo.findById(1L)).thenReturn(Optional.of(timeOff));
+        when(securityContextHelper.getDepartmentId()).thenReturn(1L);
         when(leaveSummaryRepository.findByEmployeeId(1L)).thenReturn(Optional.of(summary));
         when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -169,16 +177,18 @@ class TimeOffServiceTest {
 
     @Test
     void approve_shouldThrowWhenAlreadyApproved() {
-        TimeOff timeOff = TimeOff.builder().status(LeaveStatus.APPROVED).build();
+        TimeOff timeOff = TimeOff.builder().employee(activeEmployee).status(LeaveStatus.APPROVED).build();
         when(repo.findById(1L)).thenReturn(Optional.of(timeOff));
+        when(securityContextHelper.getDepartmentId()).thenReturn(1L);
 
         assertThrows(IllegalStateException.class, () -> service.approve(1L));
     }
 
     @Test
     void approve_shouldThrowWhenAlreadyRejected() {
-        TimeOff timeOff = TimeOff.builder().status(LeaveStatus.REJECTED).build();
+        TimeOff timeOff = TimeOff.builder().employee(activeEmployee).status(LeaveStatus.REJECTED).build();
         when(repo.findById(1L)).thenReturn(Optional.of(timeOff));
+        when(securityContextHelper.getDepartmentId()).thenReturn(1L);
 
         assertThrows(IllegalStateException.class, () -> service.approve(1L));
     }
@@ -186,8 +196,9 @@ class TimeOffServiceTest {
 
     @Test
     void reject_shouldRejectPendingLeave() {
-        TimeOff timeOff = TimeOff.builder().status(LeaveStatus.PENDING).build();
+        TimeOff timeOff = TimeOff.builder().employee(activeEmployee).status(LeaveStatus.PENDING).build();
         when(repo.findById(1L)).thenReturn(Optional.of(timeOff));
+        when(securityContextHelper.getDepartmentId()).thenReturn(1L);
         when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
 
         TimeOff result = service.reject(1L);
@@ -197,8 +208,9 @@ class TimeOffServiceTest {
 
     @Test
     void reject_shouldThrowWhenAlreadyApproved() {
-        TimeOff timeOff = TimeOff.builder().status(LeaveStatus.APPROVED).build();
+        TimeOff timeOff = TimeOff.builder().employee(activeEmployee).status(LeaveStatus.APPROVED).build();
         when(repo.findById(1L)).thenReturn(Optional.of(timeOff));
+        when(securityContextHelper.getDepartmentId()).thenReturn(1L);
 
         assertThrows(IllegalStateException.class, () -> service.reject(1L));
     }
@@ -206,17 +218,17 @@ class TimeOffServiceTest {
 
     @Test
     void getByEmployee_shouldReturnTimeOffs() {
-        when(employeeService.getById(1L)).thenReturn(activeEmployee);
+        when(employeeService.getByUsername("abcdefg")).thenReturn(activeEmployee);
         when(repo.findByEmployeeId(1L)).thenReturn(List.of(new TimeOff(), new TimeOff()));
 
-        assertEquals(2, service.getByEmployee(1L).size());
+        assertEquals(2, service.getByEmployee("abcdefg").size());
     }
 
     @Test
     void getByEmployee_shouldThrowWhenEmployeeNotFound() {
-        when(employeeService.getById(99L)).thenThrow(new ResourceNotFoundException("Employee not found: 99"));
+        when(employeeService.getByUsername("abcdefg")).thenThrow(new ResourceNotFoundException("Employee not found: 99"));
 
-        assertThrows(ResourceNotFoundException.class, () -> service.getByEmployee(99L));
+        assertThrows(ResourceNotFoundException.class, () -> service.getByEmployee("abcdefg"));
     }
 
 
@@ -241,16 +253,16 @@ class TimeOffServiceTest {
         TimeOff t2 = TimeOff.builder()
                 .startDate(LocalDate.of(2026, 2, 1)).endDate(LocalDate.of(2026, 2, 2)).build(); // 2 days
 
-        when(employeeService.getById(1L)).thenReturn(activeEmployee);
+        when(employeeService.getByUsername("abcdefg")).thenReturn(activeEmployee);
         when(repo.findByEmployeeIdAndStatus(1L, LeaveStatus.APPROVED)).thenReturn(List.of(t1, t2));
 
-        assertEquals(5, service.getTotalLeavesTaken(1L));
+        assertEquals(5, service.getTotalLeavesTaken("abcdefg"));
     }
 
     @Test
     void getTotalLeavesTaken_shouldThrowWhenEmployeeNotFound() {
-        when(employeeService.getById(99L)).thenThrow(new ResourceNotFoundException("Employee not found: 99"));
+        when(employeeService.getByUsername("abcdefg")).thenThrow(new ResourceNotFoundException("Employee not found: 99"));
 
-        assertThrows(ResourceNotFoundException.class, () -> service.getTotalLeavesTaken(99L));
+        assertThrows(ResourceNotFoundException.class, () -> service.getTotalLeavesTaken("abcdefg"));
     }
 }

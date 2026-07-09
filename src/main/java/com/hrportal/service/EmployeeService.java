@@ -71,9 +71,9 @@ public class EmployeeService {
         return repo.findAll();
     }
 
-    public Employee getById(Long id) {
-        Employee emp = repo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + id));
+    public Employee getByUsername(String username) {
+        Employee emp = repo.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + username));
 
         if(securityContextHelper.isHR()){
             if(!emp.getDepartment().getId().equals(securityContextHelper.getDepartmentId())) {
@@ -82,7 +82,8 @@ public class EmployeeService {
         }
 
         if (securityContextHelper.isEmployee()) {
-            if (!id.equals(securityContextHelper.getEmployeeId())) {
+            Employee emp2 = repo.findById(securityContextHelper.getEmployeeId()).orElseThrow();
+            if (!username.equals(emp2.getUsername())) {
             throw new BadRequestException("Access denied: Employee can only access their own profile");
             }
         }
@@ -112,11 +113,8 @@ public class EmployeeService {
       return results;
     }
 
-    public Employee patch(Long id, EmployeePatchDto dto) {  
-      Employee emp = getById(id);
-      if(repo.findByUsername(dto.username()).isPresent()){
-            throw new DuplicateResourceException("Employee already exists with username: " + dto.username());
-      }
+    public Employee patch(String username, EmployeePatchDto dto) {  
+      Employee emp = getByUsername(username);
 
       if (securityContextHelper.isHR()) {
           if (!emp.getDepartment().getId().equals(securityContextHelper.getDepartmentId())) {
@@ -124,21 +122,16 @@ public class EmployeeService {
         }
     }
 
-      if (!dto.departmentId().equals(securityContextHelper.getDepartmentId())) {
-              throw new BadRequestException("The department cannot be updated");
-    }
-
       if (dto.firstName() != null) emp.setFirstName(dto.firstName());
       if (dto.lastName() != null) emp.setLastName(dto.lastName());
       if (dto.username() != null) emp.setUsername(dto.username());
       if (dto.designation() != null) emp.setDesignation(dto.designation());
       if (dto.salary() != null) emp.setSalary(dto.salary());
-      if (dto.departmentId() != null) emp.setDepartment(departmentService.getById(dto.departmentId()));
       return repo.save(emp);
   }
 
-    public void delete(Long id) {
-        Employee emp = getById(id);
+    public void delete(String username) {
+        Employee emp = getByUsername(username);
         if (securityContextHelper.isHR()) {
         if (!emp.getDepartment().getId().equals(securityContextHelper.getDepartmentId())) {
             throw new BadRequestException("Access denied: HR can only delete employees of their department");

@@ -12,6 +12,7 @@ import com.hrportal.exception.DuplicateResourceException;
 import com.hrportal.exception.ResourceNotFoundException;
 import com.hrportal.exception.BadRequestException;
 import com.hrportal.status.EmployeeStatus;
+import com.hrportal.auth.SecurityContextHelper;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +36,7 @@ import static org.mockito.Mockito.verify;
     @Mock private EmployeeRepository repo;
     @Mock private DepartmentService departmentService;
     @Mock private LeaveSummaryRepository leaveSummaryRepository;
+    @Mock private SecurityContextHelper securityContextHelper;
     @InjectMocks private EmployeeService service;
 
     private Department mockDepartment() {
@@ -104,19 +106,19 @@ import static org.mockito.Mockito.verify;
     }
 
     @Test
-    void getById_shouldReturnEmployee() {
+    void getByUsername_shouldReturnEmployee() {
         Employee emp = new Employee();
         emp.setFirstName("John");
-        when(repo.findById(1L)).thenReturn(Optional.of(emp));
+        when(repo.findByUsername("johnray")).thenReturn(Optional.of(emp));
 
-        assertEquals("John", service.getById(1L).getFirstName());
+        assertEquals("John", service.getByUsername("johnray").getFirstName());
     }
 
     @Test
-    void getById_shouldThrowWhenNotFound() {
-        when(repo.findById(99L)).thenReturn(Optional.empty());
+    void getByUsername_shouldThrowWhenNotFound() {
+        when(repo.findByUsername("abcdefg")).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> service.getById(99L));
+        assertThrows(ResourceNotFoundException.class, () -> service.getByUsername("abcdefg"));
     }
 
     @Test
@@ -143,10 +145,10 @@ import static org.mockito.Mockito.verify;
     void delete_shouldMarkEmployeeAsTerminated() {
         Employee emp = new Employee();
         emp.setStatus(EmployeeStatus.ACTIVE);
-        when(repo.findById(1L)).thenReturn(Optional.of(emp));
+        when(repo.findByUsername("abcdefg")).thenReturn(Optional.of(emp));
         when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        service.delete(1L);
+        service.delete("abcdefg");
 
         assertEquals(EmployeeStatus.TERMINATED, emp.getStatus());
         verify(repo).save(emp);
@@ -155,9 +157,9 @@ import static org.mockito.Mockito.verify;
 
     @Test
     void delete_shouldThrowWhenNotFound() {
-        when(repo.findById(99L)).thenReturn(Optional.empty());
+        when(repo.findByUsername("abcdefg")).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> service.delete(99L));
+        assertThrows(ResourceNotFoundException.class, () -> service.delete("abcdefg"));
     }
 
     @Test
@@ -165,13 +167,12 @@ import static org.mockito.Mockito.verify;
         Employee existing = new Employee();
         existing.setFirstName("John");
         existing.setLastName("Doe");
-        existing.setUsername("johnray");
-        when(repo.findById(1L)).thenReturn(Optional.of(existing));
-        when(repo.findByUsername("johnray")).thenReturn(Optional.empty());
+        existing.setUsername("abcdefg");
+        when(repo.findByUsername("abcdefg")).thenReturn(Optional.of(existing));
         when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        EmployeePatchDto patch = new EmployeePatchDto(null, "Musk", "johnray", "Senior Dev", null, null);
-        Employee result = service.patch(1L, patch);
+        EmployeePatchDto patch = new EmployeePatchDto(null, "Musk", "johnray", "Senior Dev", null);
+        Employee result = service.patch("abcdefg", patch);
 
         assertEquals("John", result.getFirstName());      
         assertEquals("Musk", result.getLastName());
@@ -179,27 +180,5 @@ import static org.mockito.Mockito.verify;
         assertEquals("Senior Dev", result.getDesignation()); 
     }
 
-    @Test
-    void patch_shouldThrowWhenUsernameAlreadyExists() {
-        Employee existing = new Employee();
-        existing.setId(1L);
-        when(repo.findById(1L)).thenReturn(Optional.of(existing));
-        when(repo.findByUsername("johnray")).thenReturn(Optional.of(new Employee()));
-        
-        EmployeePatchDto patch = new EmployeePatchDto(null, null, "johnray", "Senior Dev", null, null);
-        assertThrows(DuplicateResourceException.class, () -> service.patch(1L,patch));
-        verify(repo, never()).save(any());
-    }
 
-    @Test
-    void patch_shouldThrowWhenDepartmentNotFound() {
-        Employee existing = new Employee();
-        existing.setId(1L);
-        when(repo.findById(1L)).thenReturn(Optional.of(existing));
-        when(departmentService.getById(1L)).thenThrow(new ResourceNotFoundException("Department not found: 1"));
-        
-        EmployeePatchDto patch = new EmployeePatchDto(null, null, null, null, null, 1L);
-        assertThrows(ResourceNotFoundException.class, () -> service.patch(1L,patch));
-        verify(repo, never()).save(any());
-    }
 }
