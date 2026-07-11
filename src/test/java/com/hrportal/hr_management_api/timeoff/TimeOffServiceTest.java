@@ -1,6 +1,6 @@
 package com.hrportal.hr_management_api.timeoff;
 
-import com.hrportal.dto.TimeOffDto;
+import com.hrportal.dto.request.TimeOffDTORequest;
 import com.hrportal.entity.Department;
 import com.hrportal.entity.Employee;
 import com.hrportal.entity.LeaveSummary;
@@ -65,8 +65,8 @@ class TimeOffServiceTest {
         summary.setPaidLeaveBalance(10);
     }
 
-    private TimeOffDto validDto(LeaveType type) {
-        return new TimeOffDto(type, LocalDate.now(), LocalDate.now().plusDays(2), "Fever");
+    private TimeOffDTORequest validDto(LeaveType type) {
+        return new TimeOffDTORequest(type, LocalDate.now(), LocalDate.now().plusDays(2), "Fever");
     }
 
     @Test
@@ -85,7 +85,7 @@ class TimeOffServiceTest {
 
     @Test
     void apply_shouldThrowWhenEndDateBeforeStartDate() {
-        TimeOffDto dto = new TimeOffDto(LeaveType.SICK, LocalDate.now().plusDays(3), LocalDate.now(), "test");
+        TimeOffDTORequest dto = new TimeOffDTORequest(LeaveType.SICK, LocalDate.now().plusDays(3), LocalDate.now(), "test");
         assertThrows(BadRequestException.class, () -> service.apply("abcdefg", dto));
     }
 
@@ -110,7 +110,7 @@ class TimeOffServiceTest {
         when(employeeService.getByUsername("abcdefg")).thenReturn(activeEmployee);
         when(repo.findByEmployeeIdAndStatus(1L, LeaveStatus.PENDING)).thenReturn(List.of());
 
-        TimeOffDto dto = new TimeOffDto(LeaveType.SICK, LocalDate.now().minusMonths(2), LocalDate.now().minusMonths(2).plusDays(2), "test");
+        TimeOffDTORequest dto = new TimeOffDTORequest(LeaveType.SICK, LocalDate.now().minusMonths(2), LocalDate.now().minusMonths(2).plusDays(2), "test");
         assertThrows(BadRequestException.class, () -> service.apply("abcdefg", dto));
     }
 
@@ -119,7 +119,7 @@ class TimeOffServiceTest {
         when(employeeService.getByUsername("abcdefg")).thenReturn(activeEmployee);
         when(repo.findByEmployeeIdAndStatus(1L, LeaveStatus.PENDING)).thenReturn(List.of());
 
-        TimeOffDto dto = new TimeOffDto(LeaveType.SICK, LocalDate.now(), LocalDate.of(LocalDate.now().getYear() + 2, 4, 2), "test");
+        TimeOffDTORequest dto = new TimeOffDTORequest(LeaveType.SICK, LocalDate.now(), LocalDate.of(LocalDate.now().getYear() + 2, 4, 2), "test");
         assertThrows(BadRequestException.class, () -> service.apply("abcdefg", dto));
     }
 
@@ -130,7 +130,7 @@ class TimeOffServiceTest {
         when(repo.findByEmployeeIdAndStatus(1L, LeaveStatus.PENDING)).thenReturn(List.of());
         when(leaveSummaryRepository.findByEmployeeId(1L)).thenReturn(Optional.of(summary));
 
-        TimeOffDto dto = new TimeOffDto(LeaveType.SICK, LocalDate.now(), LocalDate.now().plusDays(4), "test");
+        TimeOffDTORequest dto = new TimeOffDTORequest(LeaveType.SICK, LocalDate.now(), LocalDate.now().plusDays(4), "test");
         assertThrows(IllegalStateException.class, () -> service.apply("abcdefg", dto));
     }
 
@@ -141,7 +141,7 @@ class TimeOffServiceTest {
         when(repo.findByEmployeeIdAndStatus(1L, LeaveStatus.PENDING)).thenReturn(List.of());
         when(leaveSummaryRepository.findByEmployeeId(1L)).thenReturn(Optional.of(summary));
 
-        TimeOffDto dto = new TimeOffDto(LeaveType.CASUAL, LocalDate.now(), LocalDate.now().plusDays(4), "test");
+        TimeOffDTORequest dto = new TimeOffDTORequest(LeaveType.CASUAL, LocalDate.now(), LocalDate.now().plusDays(4), "test");
         assertThrows(IllegalStateException.class, () -> service.apply("abcdefg", dto));
     }
 
@@ -152,7 +152,7 @@ class TimeOffServiceTest {
         when(repo.findByEmployeeIdAndStatus(1L, LeaveStatus.PENDING)).thenReturn(List.of());
         when(leaveSummaryRepository.findByEmployeeId(1L)).thenReturn(Optional.of(summary));
 
-        TimeOffDto dto = new TimeOffDto(LeaveType.PAID, LocalDate.now(), LocalDate.now().plusDays(4), "test");
+        TimeOffDTORequest dto = new TimeOffDTORequest(LeaveType.PAID, LocalDate.now(), LocalDate.now().plusDays(4), "test");
         assertThrows(IllegalStateException.class, () -> service.apply("abcdefg", dto));
     }
 

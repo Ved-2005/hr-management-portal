@@ -1,11 +1,9 @@
 package com.hrportal.controller;
 
 import com.hrportal.common.ApiResponse;
-import com.hrportal.entity.Employee;
-import com.hrportal.dto.EmployeeDto;
-import com.hrportal.dto.EmployeePatchDto;
+import com.hrportal.dto.request.EmployeeDTORequest;
+import com.hrportal.dto.response.EmployeeDTOResponse;
 import com.hrportal.service.EmployeeService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,34 +25,37 @@ public class EmployeeController {
     private final EmployeeService service;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Employee>> create(@Valid @RequestBody EmployeeDto dto) {
+    public ResponseEntity<ApiResponse<EmployeeDTOResponse>> create(@RequestBody EmployeeDTORequest dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Employee created", service.create(dto)));
+                .body(ApiResponse.ok("Employee created", EmployeeDTOResponse.toEmployeeDTOResponse(service.create(dto))));
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Employee>>> getAll() {
-        return ResponseEntity.ok(ApiResponse.ok("Employees fetched", service.getAll()));
+    public ResponseEntity<ApiResponse<List<EmployeeDTOResponse>>> getAll() {
+        return ResponseEntity.ok(ApiResponse.ok("Employees fetched",
+                service.getAll().stream().map(EmployeeDTOResponse::toEmployeeDTOResponse).toList()));
     }
 
     @GetMapping("/{username}")
-    public ResponseEntity<ApiResponse<Employee>> getById(@PathVariable String username) {
-        return ResponseEntity.ok(ApiResponse.ok("Employee fetched", service.getByUsername(username)));
+    public ResponseEntity<ApiResponse<EmployeeDTOResponse>> getById(@PathVariable String username) {
+        return ResponseEntity.ok(ApiResponse.ok("Employee fetched", EmployeeDTOResponse.toEmployeeDTOResponse(service.getByUsername(username))));
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<Employee>>> search(@RequestParam String name) {
-        return ResponseEntity.ok(ApiResponse.ok("Search results", service.search(name)));
+    public ResponseEntity<ApiResponse<List<EmployeeDTOResponse>>> search(@RequestParam String name) {
+        return ResponseEntity.ok(ApiResponse.ok("Search results",
+                service.search(name).stream().map(EmployeeDTOResponse::toEmployeeDTOResponse).toList()));
     }
 
     @GetMapping("/department/{deptId}")
-    public ResponseEntity<ApiResponse<List<Employee>>> getByDept(@PathVariable Long deptId) {
-        return ResponseEntity.ok(ApiResponse.ok("Filtered", service.getByDepartment(deptId)));
+    public ResponseEntity<ApiResponse<List<EmployeeDTOResponse>>> getByDept(@PathVariable Long deptId) {
+        return ResponseEntity.ok(ApiResponse.ok("Filtered",
+                service.getByDepartment(deptId).stream().map(EmployeeDTOResponse::toEmployeeDTOResponse).toList()));
     }
 
     @PatchMapping("/{username}")
-    public ResponseEntity<ApiResponse<Employee>> patch(@PathVariable String username, @Valid @RequestBody EmployeePatchDto dto) {
-      return ResponseEntity.ok(ApiResponse.ok("Employee updated", service.patch(username, dto)));
+    public ResponseEntity<ApiResponse<EmployeeDTOResponse>> patch(@PathVariable String username, @RequestBody EmployeeDTORequest dto) {
+      return ResponseEntity.ok(ApiResponse.ok("Employee updated", EmployeeDTOResponse.toEmployeeDTOResponse(service.patch(username, dto))));
     }
 
     @DeleteMapping("/{username}")

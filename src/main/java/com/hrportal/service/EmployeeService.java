@@ -11,8 +11,7 @@ import com.hrportal.exception.DuplicateResourceException;
 import com.hrportal.exception.ResourceNotFoundException;
 import com.hrportal.exception.BadRequestException;
 import com.hrportal.auth.SecurityContextHelper;
-import com.hrportal.dto.EmployeeDto;
-import com.hrportal.dto.EmployeePatchDto;
+import com.hrportal.dto.request.EmployeeDTORequest;
 import com.hrportal.status.EmployeeStatus;
 import com.hrportal.status.Role;
 import lombok.RequiredArgsConstructor;
@@ -28,11 +27,27 @@ public class EmployeeService {
     private final SecurityContextHelper securityContextHelper;
     private final UserRepository userRepository;
 
-    public Employee create(EmployeeDto dto) {
+    public Employee create(EmployeeDTORequest dto) {
+        if (isBlank(dto.firstName())) {
+            throw new BadRequestException("First name is required");
+        }
+        if (isBlank(dto.lastName())) {
+            throw new BadRequestException("Last name is required");
+        }
+        if (isBlank(dto.username())) {
+            throw new BadRequestException("Username is required");
+        }
+        if (dto.salary() != null && dto.salary() <= 0) {
+            throw new BadRequestException("Salary must be positive");
+        }
+        if (dto.departmentId() == null) {
+            throw new BadRequestException("Department id is required");
+        }
+
         if (repo.findByUsername(dto.username()).isPresent()) {
           throw new DuplicateResourceException("Employee already exists with username: " + dto.username());
         }
-        
+
         Department dept = departmentService.getById(dto.departmentId());
         if(!dept.isActive()) {
             throw new BadRequestException("Department is inactive");
@@ -113,7 +128,7 @@ public class EmployeeService {
       return results;
     }
 
-    public Employee patch(String username, EmployeePatchDto dto) {  
+    public Employee patch(String username, EmployeeDTORequest dto) {
       Employee emp = getByUsername(username);
 
       if (securityContextHelper.isHR()) {
@@ -122,6 +137,10 @@ public class EmployeeService {
         }
     }
 
+      if (dto.salary() != null && dto.salary() <= 0) {
+          throw new BadRequestException("Salary must be positive");
+      }
+
       if (dto.firstName() != null) emp.setFirstName(dto.firstName());
       if (dto.lastName() != null) emp.setLastName(dto.lastName());
       if (dto.username() != null) emp.setUsername(dto.username());
@@ -129,6 +148,10 @@ public class EmployeeService {
       if (dto.salary() != null) emp.setSalary(dto.salary());
       return repo.save(emp);
   }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
 
     public void delete(String username) {
         Employee emp = getByUsername(username);

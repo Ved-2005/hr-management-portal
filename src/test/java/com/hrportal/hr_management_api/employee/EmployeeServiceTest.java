@@ -4,8 +4,7 @@ import com.hrportal.repository.EmployeeRepository;
 import com.hrportal.repository.LeaveSummaryRepository;
 import com.hrportal.entity.Department;
 import com.hrportal.entity.Employee;
-import com.hrportal.dto.EmployeeDto;
-import com.hrportal.dto.EmployeePatchDto;
+import com.hrportal.dto.request.EmployeeDTORequest;
 import com.hrportal.service.DepartmentService;
 import com.hrportal.service.EmployeeService;
 import com.hrportal.exception.DuplicateResourceException;
@@ -46,8 +45,8 @@ import static org.mockito.Mockito.verify;
         return dept;
     }
 
-    private EmployeeDto validDto() {
-        return new EmployeeDto("John", "Doe", "johnray", "Dev", 50000.0, 1L);
+    private EmployeeDTORequest validDto() {
+        return new EmployeeDTORequest("John", "Doe", "johnray", "Dev", 50000.0, 1L);
     }
 
     @Test
@@ -102,6 +101,66 @@ import static org.mockito.Mockito.verify;
         when(departmentService.getById(1L)).thenThrow(new ResourceNotFoundException("Department not found: 1"));
 
         assertThrows(ResourceNotFoundException.class, () -> service.create(validDto()));
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void create_shouldThrowWhenFirstNameIsNull() {
+        EmployeeDTORequest dto = new EmployeeDTORequest(null, "Doe", "johnray", "Dev", 50000.0, 1L);
+
+        assertThrows(BadRequestException.class, () -> service.create(dto));
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void create_shouldThrowWhenFirstNameIsBlank() {
+        EmployeeDTORequest dto = new EmployeeDTORequest("  ", "Doe", "johnray", "Dev", 50000.0, 1L);
+
+        assertThrows(BadRequestException.class, () -> service.create(dto));
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void create_shouldThrowWhenLastNameIsNull() {
+        EmployeeDTORequest dto = new EmployeeDTORequest("John", null, "johnray", "Dev", 50000.0, 1L);
+
+        assertThrows(BadRequestException.class, () -> service.create(dto));
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void create_shouldThrowWhenUsernameIsNull() {
+        EmployeeDTORequest dto = new EmployeeDTORequest("John", "Doe", null, "Dev", 50000.0, 1L);
+
+        assertThrows(BadRequestException.class, () -> service.create(dto));
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void create_shouldThrowWhenDepartmentIdIsNull() {
+        EmployeeDTORequest dto = new EmployeeDTORequest("John", "Doe", "johnray", "Dev", 50000.0, null);
+
+        assertThrows(BadRequestException.class, () -> service.create(dto));
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void create_shouldThrowWhenSalaryIsNotPositive() {
+        EmployeeDTORequest dto = new EmployeeDTORequest("John", "Doe", "johnray", "Dev", 0.0, 1L);
+
+        assertThrows(BadRequestException.class, () -> service.create(dto));
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void patch_shouldThrowWhenSalaryIsNotPositive() {
+        Employee existing = new Employee();
+        existing.setUsername("abcdefg");
+        when(repo.findByUsername("abcdefg")).thenReturn(Optional.of(existing));
+
+        EmployeeDTORequest patch = new EmployeeDTORequest(null, null, null, null, -100.0, null);
+
+        assertThrows(BadRequestException.class, () -> service.patch("abcdefg", patch));
         verify(repo, never()).save(any());
     }
 
@@ -171,7 +230,7 @@ import static org.mockito.Mockito.verify;
         when(repo.findByUsername("abcdefg")).thenReturn(Optional.of(existing));
         when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        EmployeePatchDto patch = new EmployeePatchDto(null, "Musk", "johnray", "Senior Dev", null);
+        EmployeeDTORequest patch = new EmployeeDTORequest(null, "Musk", "johnray", "Senior Dev", null, null);
         Employee result = service.patch("abcdefg", patch);
 
         assertEquals("John", result.getFirstName());      

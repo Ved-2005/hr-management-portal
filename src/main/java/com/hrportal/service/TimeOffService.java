@@ -18,7 +18,7 @@ import com.hrportal.entity.TimeOff;
 import com.hrportal.exception.BadRequestException;
 import com.hrportal.exception.ResourceNotFoundException;
 import com.hrportal.auth.SecurityContextHelper;
-import com.hrportal.dto.TimeOffDto;
+import com.hrportal.dto.request.TimeOffDTORequest;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +28,20 @@ public class TimeOffService {
     private final LeaveSummaryRepository leaveSummaryRepository;
     private final SecurityContextHelper securityContextHelper;
 
-    public TimeOff apply(String username, TimeOffDto dto) {
+    public TimeOff apply(String username, TimeOffDTORequest dto) {
+
+        if (dto.leaveType() == null) {
+            throw new BadRequestException("Leave type is required");
+        }
+        if (dto.startDate() == null) {
+            throw new BadRequestException("Start date is required");
+        }
+        if (dto.endDate() == null) {
+            throw new BadRequestException("End date is required");
+        }
+        if (dto.reason() == null || dto.reason().isBlank()) {
+            throw new BadRequestException("Reason is required");
+        }
 
         if (dto.endDate().isBefore(dto.startDate())) {
             throw new BadRequestException("End date cannot be before start date");

@@ -7,7 +7,7 @@ import com.hrportal.service.DepartmentService;
 import com.hrportal.status.EmployeeStatus;
 import com.hrportal.entity.Department;
 import com.hrportal.entity.Employee;
-import com.hrportal.dto.DepartmentDto;
+import com.hrportal.dto.request.DepartmentDTORequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -35,7 +35,7 @@ class DepartmentServiceTest {
 
     @Test
     void create_shouldSaveDepartment() {
-        var dto = new DepartmentDto("Engineering", "Tech team",5,10,10);
+        var dto = new DepartmentDTORequest("Engineering", "Tech team",5,10,10);
         when(repo.findByName("Engineering")).thenReturn(Optional.empty());
         when(repo.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -47,7 +47,7 @@ class DepartmentServiceTest {
 
     @Test
     void create_shouldThrowWhenNameAlreadyExists() {
-        var dto = new DepartmentDto("Engineering", "Tech team",5,10,10);
+        var dto = new DepartmentDTORequest("Engineering", "Tech team",5,10,10);
         when(repo.findByName("Engineering")).thenReturn(Optional.of(new Department()));
 
         assertThrows(DuplicateResourceException.class, () -> service.create(dto));
