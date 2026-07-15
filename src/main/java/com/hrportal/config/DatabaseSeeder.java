@@ -11,6 +11,7 @@ import com.hrportal.repository.UserRepository;
 import com.hrportal.status.EmployeeStatus;
 import com.hrportal.status.Role;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -26,10 +27,18 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${admin.initial.password}")
+    private String adminInitialPassword;
+
     @Override
     @Transactional
     public void run(String... args) throws Exception {
         if (userRepository.count() == 0) {
+
+            if (adminInitialPassword == null || adminInitialPassword.isBlank()) {
+                throw new IllegalStateException(
+                        "ADMIN_INITIAL_PASSWORD must be set to seed the initial admin user");
+            }
 
             Department itDept = Department.builder()
                     .name("IT Administration")
@@ -54,7 +63,7 @@ public class DatabaseSeeder implements CommandLineRunner {
 
             User adminUser = User.builder()
                     .username(adminEmployee.getUsername())
-                    .password(passwordEncoder.encode("syadmin"))
+                    .password(passwordEncoder.encode(adminInitialPassword))
                     .role(Role.ADMIN)
                     .build();
             userRepository.save(adminUser);

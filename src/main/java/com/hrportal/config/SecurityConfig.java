@@ -54,7 +54,6 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.PATCH, "/api/leaves/*/approve").hasAuthority("HR")
             .requestMatchers(HttpMethod.PATCH, "/api/leaves/*/reject").hasAuthority("HR")
             .requestMatchers(HttpMethod.GET, "/api/leaves/employee/**").hasAnyAuthority("HR", "EMPLOYEE")
-            .requestMatchers(HttpMethod.GET, "/api/leaves/total/**").hasAnyAuthority("HR", "EMPLOYEE")
             .anyRequest().authenticated())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .build();
