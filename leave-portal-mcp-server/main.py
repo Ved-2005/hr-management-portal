@@ -76,9 +76,9 @@ async def get_all_employees(userToken: str) -> str:
     return await make_request("GET", "/employees", userToken)
 
 @mcp.tool()
-async def get_employee_by_id(id: int, userToken: str) -> str:
-    """Fetch a single employee's full details using their ID."""
-    return await make_request("GET", f"/employees/{id}", userToken)
+async def get_employee_by_username(username: str, userToken: str) -> str:
+    """Fetch a single employee's full details using their username."""
+    return await make_request("GET", f"/employees/{username}", userToken)
 
 @mcp.tool()
 async def search_employees(name: str, userToken: str) -> str:
@@ -92,11 +92,10 @@ async def get_employees_by_department(deptId: int, userToken: str) -> str:
 
 @mcp.tool()
 async def patch_employee(
-    id: int, 
+    username: str, 
     userToken: str, 
     firstName: str = None, 
     lastName: str = None, 
-    username: str = None, 
     designation: str = None, 
     salary: float = None, 
     departmentId: int = None
@@ -105,7 +104,6 @@ async def patch_employee(
     raw_payload = {
         "firstName": firstName,
         "lastName": lastName,
-        "username": username,
         "designation": designation,
         "salary": salary,
         "departmentId": departmentId
@@ -113,15 +111,15 @@ async def patch_employee(
     
     payload = {k: v for k, v in raw_payload.items() if v is not None}
     
-    return await make_request("PATCH", f"/employees/{id}", userToken, json=payload)
+    return await make_request("PATCH", f"/employees/{username}", userToken, json=payload)
 
 @mcp.tool()
-async def delete_employee(id: int, userToken: str) -> str:
-    """Terminate (soft delete) an employee by ID."""
-    return await make_request("DELETE", f"/employees/{id}", userToken)
+async def delete_employee(username: str, userToken: str) -> str:
+    """Terminate (soft delete) an employee by username."""
+    return await make_request("DELETE", f"/employees/{username}", userToken)
 
 @mcp.tool()
-async def apply_for_leave(employeeId: int, startDate: str, endDate: str, leaveType: str, reason: str, userToken: str) -> str:
+async def apply_for_leave(username: str, startDate: str, endDate: str, leaveType: str, reason: str, userToken: str) -> str:
     """
     Apply for a leave/timeoff request for a specific employee.
     - startDate / endDate format: YYYY-MM-DD
@@ -133,7 +131,7 @@ async def apply_for_leave(employeeId: int, startDate: str, endDate: str, leaveTy
         "leaveType": leaveType,
         "reason": reason
     }
-    return await make_request("POST", f"/leaves/employee/{employeeId}", userToken, json=payload)
+    return await make_request("POST", f"/leaves/employee/{username}", userToken, json=payload)
 
 @mcp.tool()
 async def get_pending_leaves(userToken: str) -> str:
@@ -141,9 +139,9 @@ async def get_pending_leaves(userToken: str) -> str:
     return await make_request("GET", "/leaves/pending", userToken)
 
 @mcp.tool()
-async def get_employee_leaves(empId: int, userToken: str) -> str:
+async def get_employee_leaves(username: str, userToken: str) -> str:
     """Fetch the entire leave history (pending, approved, rejected) for a specific employee."""
-    return await make_request("GET", f"/leaves/employee/{empId}", userToken)
+    return await make_request("GET", f"/leaves/employee/{username}", userToken)
 
 @mcp.tool()
 async def approve_leave(id: int, userToken: str) -> str:
@@ -156,9 +154,9 @@ async def reject_leave(id: int, userToken: str) -> str:
     return await make_request("PATCH", f"/leaves/{id}/reject", userToken)
 
 @mcp.tool()
-async def get_total_leaves_taken(employeeId: int, userToken: str) -> str:
+async def get_total_leaves_taken(username: str, userToken: str) -> str:
     """Retrieve the total number of approved leave days an employee has taken so far."""
-    return await make_request("GET", f"/leaves/employee/{employeeId}/total-leaves", userToken)
+    return await make_request("GET", f"/leaves/employee/{username}/total-leaves", userToken)
 
 if __name__ == "__main__":
     mcp.run()
